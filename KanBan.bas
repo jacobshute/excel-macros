@@ -2,13 +2,13 @@ Attribute VB_Name = "KanBan"
 ' Everything works in the table A:E
 ' columns: non-work upcoming | work upcoming | in progress | done | archive
 
-' TODO make this work with a range and not just a single cell
+
 ' TODO if it is going into the done or archive cell, put at top instead of bottom
 ' Moves a cell right
 Sub KanBan_right()
     
     If ActiveSheet.Name <> "KanBan" And ActiveSheet.Name <> "KanBan TEST" Then
-        Debug.Print ("working in the wrong sheet!!!!")
+        Debug.Print ("working in the wrong sheet!")
         Exit Sub
     End If
     
@@ -20,23 +20,27 @@ Sub KanBan_right()
         Debug.Print ("tried to move header row")
         Exit Sub
     End If
-    If Selection.Value = "" Then
-        Debug.Print ("tried to move empty cell")
-        Exit Sub
-    End If
         
-    ' look at column to the right, iterate until empty cell is found, then cut and paste
-    For i = 2 To task_table.Rows().Count
-        If Cells(i, Selection.column + 1) = "" Then
-            Cells(i, Selection.column + 1).Value = ActiveCell.Value
-            ActiveCell.Value = ""
-            Set column = task_table.Columns(Selection.column)
-            KanBan_shift_up column
-            KanBan_in_progress
-            Exit Sub
+    ' look at column to the right, iterate until empty cell is found, then cut and paste every selected cell
+    For Each cell In Selection.Cells()
+        If cell.value = "" Then
+            Debug.Print ("tried to move empty cell")
+        Else
+            For i = 2 To task_table.Rows().Count
+            If Cells(i, cell.column + 1) = "" Then
+                Cells(i, cell.column + 1).value = cell.value
+                cell.value = ""
+                Set column = task_table.Columns(cell.column)
+                Exit For
+            End If
+            Next i
+        
         End If
-    Next i
-
+    Next cell
+    
+    KanBan_shift_up column
+    KanBan_in_progress
+    
 End Sub
 
 
@@ -50,23 +54,26 @@ Sub KanBan_left()
         Debug.Print ("tried to move header row")
         Exit Sub
     End If
-    If Selection.Value = "" Then
-        Debug.Print ("tried to move empty cell")
-        Exit Sub
-    End If
+
     
     ' look at column to the left, iterate until empty cell is found, then cut and paste
-    For i = 2 To task_table.Rows().Count
-        If Cells(i, Selection.column - 1) = "" Then
-            Cells(i, Selection.column - 1).Value = ActiveCell.Value
-            ActiveCell.Value = ""
-            Set column = task_table.Columns(Selection.column)
-            KanBan_shift_up column
-            KanBan_in_progress
-            Exit Sub
+    For Each cell In Selection.Cells()
+    If cell.value = "" Then
+        Debug.Print ("empty cell")
+    Else
+        For i = 2 To task_table.Rows().Count
+        If Cells(i, cell.column - 1) = "" Then
+            Cells(i, cell.column - 1).value = cell.value
+            cell.value = ""
+            Set column = task_table.Columns(cell.column)
+            Exit For
         End If
-    Next i
-    
+        Next i
+    End If
+    Next cell
+
+    KanBan_shift_up column
+    KanBan_in_progress
 End Sub
 
 
@@ -104,15 +111,15 @@ Sub KanBan_shift_up(column As Object)
     Do While i <= column.Rows.Count
         
         Set cell = column.Cells(i)
-        If cell.Value <> "" Then
+        If cell.value <> "" Then
             ' go through all cells in the column looking for a blank spot
             ' TODO make this actually efficient... maybe store a var that is "highest open spot" or something. Then solve how to adjust that once it has been assigned?
             j = 1
             Do While j < i
                 Set scratch = column.Cells(j)
-                If scratch.Value = "" Then
-                    scratch.Value = cell.Value
-                    cell.Value = ""
+                If scratch.value = "" Then
+                    scratch.value = cell.value
+                    cell.value = ""
                     Exit Do
                 End If
                 j = j + 1
@@ -152,7 +159,7 @@ Sub KanBan_Sort()
     Next i
 
     If Not exists Then
-        Set scratch_sheet = Worksheets.Add(After:=ActiveWorkbook.Worksheets(ActiveWorkbook.Worksheets.Count))
+        Set scratch_sheet = Worksheets.Add(after:=ActiveWorkbook.Worksheets(ActiveWorkbook.Worksheets.Count))
         scratch_sheet.Name = "KanBan_scratch"
     End If
             
@@ -161,15 +168,15 @@ Sub KanBan_Sort()
     Set task_table = ActiveSheet.Range("A2:E2", ActiveSheet.Range("E" & ActiveSheet.Rows.Count).End(xlUp))
     Set work_table = scratch_sheet.Range("A2:A2", scratch_sheet.Range("A" & task_table.Rows.Count))
     For Each cell In work_table
-        cell.Value = ""
+        cell.value = ""
     Next cell
     
     
     For Each column In task_table.Columns
         Debug.Print ("---------- Column " & column.column & " ----------")
         KanBan_shift_up column
-        KanBan_merge_sort column
-        'KanBan_bubble_sort column
+        'KanBan_merge_sort column
+        KanBan_bubble_sort column ' this one is slow when there are a lot of rows, but it works consistently, so I'm making it the default for now
         'KanBan_rough_sort column
     Next
     
@@ -199,7 +206,7 @@ Sub KanBan_rough_sort(column As Range)
     Do While j <= column.Rows.Count
         Set cell = column.Cells(j)
             
-        If InStr(cell.Value, "H:") <> 0 Then
+        If InStr(cell.value, "H:") <> 0 Then
                 
             If cell.row = high_ptr + 1 Then
                 ' don't move cell, move on if the cell is already where the pointer would be
@@ -207,9 +214,9 @@ Sub KanBan_rough_sort(column As Range)
                 j = j + 1
             Else
                 ' swap the cell with the pointer cell
-                scratch = cell.Value
-                cell.Value = column.Cells(high_ptr).Value
-                column.Cells(high_ptr).Value = scratch
+                scratch = cell.value
+                cell.value = column.Cells(high_ptr).value
+                column.Cells(high_ptr).value = scratch
                     
                 ' make sure lower pointers aren't behind higher ones
                 high_ptr = high_ptr + 1
@@ -221,8 +228,8 @@ Sub KanBan_rough_sort(column As Range)
                 End If
                     
             End If
-            Debug.Print (cell.Value)
-        ElseIf InStr(cell.Value, "M:") <> 0 Then
+            Debug.Print (cell.value)
+        ElseIf InStr(cell.value, "M:") <> 0 Then
                 
             If cell.row = med_ptr + 1 Then
                 ' cell is where it belongs, move on
@@ -231,9 +238,9 @@ Sub KanBan_rough_sort(column As Range)
                     
             Else
                 ' swap the cell with the pointer cell
-                scratch = cell.Value
-                cell.Value = column.Cells(med_ptr).Value
-                column.Cells(med_ptr).Value = scratch
+                scratch = cell.value
+                cell.value = column.Cells(med_ptr).value
+                column.Cells(med_ptr).value = scratch
                     
                 ' make sure lower pointers aren't behind higher ones
                 med_ptr = med_ptr + 1
@@ -242,8 +249,8 @@ Sub KanBan_rough_sort(column As Range)
                 End If
             End If
                 
-            Debug.Print (cell.Value)
-        ElseIf InStr(cell.Value, "L:") <> 0 Then
+            Debug.Print (cell.value)
+        ElseIf InStr(cell.value, "L:") <> 0 Then
                 
             If cell.row = low_ptr + 1 Then
                 ' cell is where it belongs, move on
@@ -252,15 +259,15 @@ Sub KanBan_rough_sort(column As Range)
                     
             Else
                 ' swap the cell with the pointer cell
-                scratch = cell.Value
-                cell.Value = column.Cells(low_ptr).Value
-                column.Cells(low_ptr).Value = scratch
+                scratch = cell.value
+                cell.value = column.Cells(low_ptr).value
+                column.Cells(low_ptr).value = scratch
                     
                 low_ptr = low_ptr + 1
                     
             End If
                 
-            Debug.Print (cell.Value)
+            Debug.Print (cell.value)
         Else
             ' if there's nothing here, or there's no marker, just leave it and move on to the next cell.
             j = j + 1
@@ -337,7 +344,7 @@ Sub KanBan_merge_sort(List As Range)
     Do While i <= A.Rows.Count
 ' this works actually...
 '        If B(i) = "" Then
-'            'do nothing
+'            do nothing
 '        ElseIf B(i) < cell Then
 '            scratch = cell.Value
 '            cell.Value = B(i).Value
@@ -345,11 +352,26 @@ Sub KanBan_merge_sort(List As Range)
 '            i = i + 1
 '        End If
         
-        If check_swap(A(i), B(j)) Then
-            j = j + 1
-        Else
-            i = i + 1
-        End If
+        ' This doesn't work.
+        ' there needs to be a zip between the two arrays...
+        ' how would this work in place?
+'        If check_swap(A(i), B(j)) Then
+'            j = j + 1
+'        Else
+'            i = i + 1
+'        End If
+
+        ' ok, new way to do this
+        ' need to use a temp Range array
+        ' then copy that array back to the main table.
+        
+        ' TODO the checkswap function needs to change if this is going to work.
+        ' change it so that it doesn't do the swap, only returns Bool to trigger a swap.
+        ' TODO update bubble_sort to work with that.
+
+
+
+
         
     Loop
     
@@ -359,7 +381,7 @@ End Sub
 
 
 ' TODO - not actually swapping alphabetically for some reason...
-' works with bubble sort, not with merge sort.
+' works with bubble sort, not with merge sort.????
 
 ' was copy-pasting this in different sort algos so made a function
 ' looks at the two ranges and swaps in correct priority then alphabetical order
@@ -371,41 +393,44 @@ Function check_swap(A, B)
     If mid(A, 1, 2) = mid(B, 1, 2) Then
         If StrComp(Replace(A, " ", ""), Replace(B, " ", ""), vbTextCompare) = 1 Then
             check_swap = True
-            scratch = A.Value
-            A.Value = B.Value
-            B.Value = scratch
+            scratch = A.value
+            A.value = B.value
+            B.value = scratch
         End If
     ElseIf mid(A, 1, 2) = "H:" Or mid(A, 1, 2) = "M:" Or mid(A, 1, 2) = "L:" Then
         If mid(A, 1, 2) = "H:" Or mid(B, 1, 2) = "L:" Then
-            ' As in right order
+            ' Is in right order
         ElseIf mid(B, 1, 2) <> "H:" And mid(B, 1, 2) <> "M:" And mid(B, 1, 2) <> "L:" Then
-            ' in right place
+            ' If B has no priority indicator, In right place
         ElseIf mid(A, 1, 2) = "L:" Then
+            ' do I actually even need this one? won't this swap still happen in one of the next two elseif statements?
             check_swap = True
-            scratch = A.Value
-            A.Value = B.Value
-            B.Value = scratch
+            scratch = A.value
+            A.value = B.value
+            B.value = scratch
         ElseIf mid(B, 1, 2) = "M:" Then
             check_swap = True
-            scratch = A.Value
-            A.Value = B.Value
-            B.Value = scratch
+            scratch = A.value
+            A.value = B.value
+            B.value = scratch
         ElseIf mid(B, 1, 2) = "H:" Then
             check_swap = True
-            scratch = A.Value
-            A.Value = B.Value
-            B.Value = scratch
+            scratch = A.value
+            A.value = B.value
+            B.value = scratch
         End If
     ElseIf mid(B, 1, 2) = "H:" Or mid(B, 1, 2) = "M:" Or mid(B, 1, 2) = "L:" Then
+        ' If A does not have a priority, but B does, swap them
         check_swap = True
-        scratch = A.Value
-        A.Value = B.Value
-        B.Value = scratch
+        scratch = A.value
+        A.value = B.value
+        B.value = scratch
     ElseIf StrComp(Replace(A, " ", ""), Replace(B, " ", ""), vbTextCompare) = 1 Then
+        ' If A and B do not have priorities, put them in alphabetical order
         check_swap = True
-        scratch = A.Value
-        A.Value = B.Value
-        B.Value = scratch
+        scratch = A.value
+        A.value = B.value
+        B.value = scratch
     End If
     
 End Function

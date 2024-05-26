@@ -1,1 +1,5 @@
+# discluding the testing file
 Test.bas
+
+# ignoring this until I actually get it working to a reasonable degree
+KanBan.bas

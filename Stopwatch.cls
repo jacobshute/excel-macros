@@ -13,8 +13,8 @@ Attribute VB_Exposed = False
 
 
 Private mlngStart As Long
-Private Declare Function GetTickCount Lib "kernel32" () As Long
-
+#If Win64 Then
+Private Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr
 Public Sub StartTimer()
     mlngStart = GetTickCount
 End Sub
@@ -22,4 +22,16 @@ End Sub
 Public Function EndTimer() As Long
     EndTimer = (GetTickCount - mlngStart)
 End Function
+#Else
+Private Declare Function GetTickCount Lib "kernel32" () As Long
+Public Sub StartTimer()
+    mlngStart = GetTickCount
+End Sub
+
+Public Function EndTimer() As Long
+    EndTimer = (GetTickCount - mlngStart)
+End Function
+#End If
+
+
 
